@@ -3,46 +3,32 @@ const app = express();
 const axios = require('axios');
 
 app.get('/', async (req, res) => {
-    // 1. Récupère l'IP depuis les headers de Render
-    let ip = req.headers['x-forwarded-for']?.split(',')[0] ||
-            req.headers['x-real-ip'] ||
-            req.ip ||
-            req.connection.remoteAddress;
+    let ip = req.headers['x-forwarded-for']?.split(',')[0] || req.headers['x-real-ip'] || req.ip || req.connection.remoteAddress;
 
-    // 2. Si l'IP est locale, on la récupère via une API externe
-    if (ip === '::1' || ip === '127.0.0.1' || ip === '::ffff:127.0.0.1') {
+    if (ip === '::1' || ip === '127.0.0.1') {
         try {
             const response = await axios.get('https://api.ipify.org?format=json');
             ip = response.data.ip;
         } catch (error) {
-            console.log("Erreur IP externe:", error.message);
+            console.log("Erreur IP:", error.message);
         }
     }
 
-    // 3. Récupère la localisation via ip-api.com
     try {
-        const geoResponse = await axios.get(`http://ip-api.com/json/${ip}`);
-        const geo = geoResponse.data;
-
-        console.log("=== NOUVELLE VISITE ===");
+        const geo = await axios.get(`http://ip-api.com/json/${ip}`);
+        console.log("=== VISITE ===");
         console.log(`IP: ${ip}`);
-        console.log(`Pays: ${geo.country}`);
-        console.log(`Ville: ${geo.city}`);
-        console.log(`Région: ${geo.regionName}`);
-        console.log(`Coordonnées: ${geo.lat}, ${geo.lon}`);
-        console.log(`ISP: ${geo.isp}`);
-        console.log(`User-Agent: ${req.headers['user-agent']}`);
+        console.log(`Pays: ${geo.data.country}`);
+        console.log(`Ville: ${geo.data.city}`);
+        console.log(`ISP: ${geo.data.isp}`);
         console.log(`Heure: ${new Date().toISOString()}`);
-        console.log("======================");
-
-        res.send(`<h1>Tracké !</h1><p>IP: ${ip}</p><p>Pays: ${geo.country}</p><p>Ville: ${geo.city}</p>`);
+        console.log("=============");
+        res.send(`<h1>IP: ${ip}</h1><p>Pays: ${geo.data.country}</p>`);
     } catch (error) {
-        console.log("Erreur géolocalisation:", error.message);
-        res.send(`<h1>Erreur: ${error.message}</h1>`);
+        console.log("Erreur:", error.message);
+        res.send(`<h1>Erreur</h1>`);
     }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Serveur démarré sur le port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Serveur démarré sur le port ${PORT}`));

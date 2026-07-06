@@ -45,13 +45,4 @@ app.get('/', async (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Serveur démarré sur le port ${PORT}`);
-});    console.log(`Heure: ${userData.timestamp}`);
-    console.log('-----------------------');
-
-    res.send(`<h1>Salut, ton pote t'a envoyé ce lien !</h1>`);
-});
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Serveur démarré sur le port ${PORT}`);
 });

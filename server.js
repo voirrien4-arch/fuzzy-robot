@@ -1,34 +1,78 @@
 const express = require('express');
+const chalk = require('chalk');
+const ngrok = require('ngrok');
 const app = express();
-const axios = require('axios');
+const port = 3000;
 
-app.get('/', async (req, res) => {
-    let ip = req.headers['x-forwarded-for']?.split(',')[0] || req.headers['x-real-ip'] || req.ip || req.connection.remoteAddress;
+// Middleware pour servir des fichiers statiques (optionnel)
+app.use(express.static('public'));
 
-    if (ip === '::1' || ip === '127.0.0.1') {
-        try {
-            const response = await axios.get('https://api.ipify.org?format=json');
-            ip = response.data.ip;
-        } catch (error) {
-            console.log("Erreur IP:", error.message);
-        }
-    }
-
-    try {
-        const geo = await axios.get(`http://ip-api.com/json/${ip}`);
-        console.log("=== VISITE ===");
-        console.log(`IP: ${ip}`);
-        console.log(`Pays: ${geo.data.country}`);
-        console.log(`Ville: ${geo.data.city}`);
-        console.log(`ISP: ${geo.data.isp}`);
-        console.log(`Heure: ${new Date().toISOString()}`);
-        console.log("=============");
-        res.send(`<h1>IP: ${ip}</h1><p>Pays: ${geo.data.country}</p>`);
-    } catch (error) {
-        console.log("Erreur:", error.message);
-        res.send(`<h1>Erreur</h1>`);
-    }
+// Route pour l'interface
+app.get('/', (req, res) => {
+    res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Interface Stylée</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    background-color: #f0f0f0;
+                    text-align: center;
+                    padding: 50px;
+                }
+                h1 {
+                    color: #333;
+                }
+                .container {
+                    background-color: white;
+                    padding: 20px;
+                    border-radius: 10px;
+                    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                    max-width: 500px;
+                    margin: 0 auto;
+                }
+                .link {
+                    color: #007BFF;
+                    font-size: 18px;
+                    margin: 10px 0;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <h1>Bienvenue sur l'interface stylée</h1>
+                <p>Voici le lien à partager :</p>
+                <p class="link" id="ngrokLink">Chargement...</p>
+            </div>
+            <script>
+                // Récupérer le lien ngrok depuis l'URL actuelle
+                const currentUrl = window.location.href;
+                document.getElementById('ngrokLink').textContent = currentUrl;
+            </script>
+        </body>
+        </html>
+    `);
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Serveur démarré sur le port ${PORT}`));
+// Démarrer le serveur
+app.listen(port, async () => {
+    console.log(
+        chalk.green(`Serveur démarré sur http://localhost:${port}`)
+    );
+
+    // Lancer ngrok et afficher le lien
+    try {
+        const url = await ngrok.connect(port);
+        console.log(
+            chalk.blue(`Lien ngrok : ${url}`)
+        );
+        console.log(
+            chalk.yellow(`Envoie ce lien à ta cible : ${url}`)
+        );
+    } catch (error) {
+        console.error(
+            chalk.red(`Erreur avec ngrok : ${error.message}`)
+        );
+    }
+});

